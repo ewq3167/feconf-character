@@ -642,6 +642,9 @@ ipcMain.on('mascot:click', () => {
   handleEvent('state', { state: 'happy', ttl: 1500 });
   toggleGuide();
 });
+ipcMain.on('mascot:rightclick', () => {
+  toggleDev();
+});
 
 ipcMain.handle('guide:getData', () => guideData());
 ipcMain.on('guide:close', () => {

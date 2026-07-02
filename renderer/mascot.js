@@ -357,9 +357,16 @@ let moved = 0;
 let last = { x: 0, y: 0 };
 
 cv.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return; // 왼쪽 버튼만 드래그/클릭 처리
   dragging = true;
   moved = 0;
   last = { x: e.screenX, y: e.screenY };
+});
+
+// 오른쪽 클릭 → 개발자 미리보기 패널
+cv.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  if (window.mascot) window.mascot.rightClick();
 });
 window.addEventListener('mousemove', (e) => {
   if (!dragging) return;

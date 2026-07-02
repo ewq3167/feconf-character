@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('mascot', {
   getConfig: () => ipcRenderer.invoke('mascot:getConfig'),
   drag: (dx, dy) => ipcRenderer.send('mascot:drag', { dx, dy }),
   click: () => ipcRenderer.send('mascot:click'),
+  rightClick: () => ipcRenderer.send('mascot:rightclick'),
 
   // 안내 패널
   guideGetData: () => ipcRenderer.invoke('guide:getData'),
