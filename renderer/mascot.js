@@ -18,14 +18,17 @@ const shadow = document.getElementById('shadow');
 // ---- 팔레트 -----------------------------------------------------------------
 const C = {
   outline: '#2b2620',
-  body: '#FDDC3F',
-  shade: '#EAC420',
-  pink: '#F79FB4',
+  body: '#C9A6F0', // 연보라 몸통(발/머리)
+  shade: '#A87BE0', // 어두운 보라 음영
+  shell: '#8E5BD6', // 껍데기 보라
+  shellDark: '#5E3AA6', // 나선 라인
+  shellLight: '#BE97EC', // 껍데기 하이라이트
+  pink: '#F0A6D0', // 볼터치
   white: '#ffffff',
   eye: '#2b2620',
-  mouth: '#C24C5B',
-  red: '#E8433B',
-  z: '#7aa7d8',
+  mouth: '#7A3A6E',
+  red: '#E8433B', // notify 이펙트
+  z: '#B39DDB', // 졸음 표시
 };
 
 // ---- 그리기 헬퍼 (논리 좌표 = 64x64) ---------------------------------------
@@ -55,6 +58,10 @@ let temp = null; // { state, until }  (일시 상태)
 let lastLook = { t: 0, dx: 0, dy: 0 };
 let walkDir = -1; // 걷는 방향(-1 왼쪽, +1 오른쪽)
 const BASE_STATES = ['idle', 'sleeping', 'walking', 'working'];
+
+// 눈 자루(더듬이) 끝 위치 — 매 프레임 drawCat 에서 갱신
+let stalkTipL = { x: 45, y: 15 };
+let stalkTipR = { x: 51, y: 12 };
 
 function effectiveState() {
   if (temp && performance.now() < temp.until) return temp.state;
@@ -119,58 +126,38 @@ function drawCat(now) {
   const sScale = 1 - bob * 0.03;
   shadow.style.transform = `scaleX(${sScale.toFixed(3)})`;
 
-  // ============ 꼬리 (뒤쪽부터) ============
-  const tw = Math.sin(t * tailSpeed) * tailAmp;
-  const tail = [
-    [45, 46],
-    [48, 44],
-    [50, 41],
-    [51, 37],
-    [50, 34],
-  ];
-  tail.forEach(([tx, ty], i) => {
-    const off = Math.round((tw * (i + 1)) / tail.length);
-    block(tx + off, ty, 4, 4, C.body);
-  });
+  const sway = Math.sin(t * tailSpeed) * tailAmp; // 더듬이 흔들림
 
-  // ============ 몸통 ============
-  block(20, 34 + breathe, 24, 22 - breathe, C.body);
-  clr(20, 34 + breathe, 2, 2); // 상단 코너 라운드
-  clr(42, 34 + breathe, 2, 2);
-  clr(20, 54, 2, 2); // 하단 코너
-  clr(42, 54, 2, 2);
-  // 배 하이라이트
-  fill(26, 44, 12, 9, C.white);
-  clr(26, 44, 1, 1);
-  clr(37, 44, 1, 1);
+  // ============ 발 (몸통 바닥) ============
+  block(8, 45 + breathe, 47, 9 - breathe, C.body);
+  clr(8, 45 + breathe, 2, 1);
+  clr(53, 45 + breathe, 2, 1);
+  clr(8, 45 + breathe, 1, 3); // 왼쪽 꼬리 끝 둥글게
+  clr(8, 52, 3, 2);
+  clr(52, 52, 3, 2);
+  fill(11, 51, 41, 2, C.shade); // 바닥 그림자
+  fill(13, 46, 30, 1, C.shellLight); // 윗면 하이라이트
 
-  // 앞발 (walking 시 번갈아 스텝)
-  const pawLy = 52 - (gait > 0.2 ? 2 : 0);
-  const pawRy = 52 - (gait < -0.2 ? 2 : 0);
-  block(23, pawLy, 7, 6, C.body);
-  block(34, pawRy, 7, 6, C.body);
+  // ============ 머리 (앞쪽/오른쪽) ============
+  block(42, 34, 15, 18, C.body);
+  clr(42, 34, 2, 2);
+  clr(55, 34, 2, 2);
+  clr(42, 50, 2, 2);
+  clr(55, 50, 2, 2);
+  fill(51, 43, 3, 2, C.pink); // 볼터치
 
-  // ============ 귀 ============
-  tri(23, 6, 8, C.outline);
-  tri(23, 7, 6, C.body);
-  tri(23, 10, 3, C.pink);
-  tri(41, 6, 8, C.outline);
-  tri(41, 7, 6, C.body);
-  tri(41, 10, 3, C.pink);
+  // ============ 껍데기 (나선 돔) ============
+  drawShell(t);
 
-  // ============ 머리 ============
-  block(16, 12, 32, 24, C.body);
-  // 라운드 코너
-  clr(16, 12, 2, 2);
-  clr(46, 12, 2, 2);
-  clr(16, 34, 2, 2);
-  clr(46, 34, 2, 2);
-  clr(16, 12, 1, 3);
-  clr(47, 12, 1, 3);
-
-  // 볼터치
-  fill(19, 27, 4, 3, C.pink);
-  fill(41, 27, 4, 3, C.pink);
+  // ============ 더듬이 (눈 자루) ============
+  const tlx = 45 + Math.round(sway * 0.4);
+  const trx = 51 + Math.round(sway * 0.6);
+  const tlTop = 15;
+  const trTop = 12;
+  drawStalk(46, 36, tlx + 2, tlTop + 6);
+  drawStalk(52, 36, trx + 2, trTop + 6);
+  stalkTipL = { x: tlx, y: tlTop };
+  stalkTipR = { x: trx, y: trTop };
 
   drawFace(state, t);
 
@@ -185,30 +172,30 @@ function drawCat(now) {
   ctx.restore();
 }
 
-// ---- 얼굴(눈/코/입) ---------------------------------------------------------
+// ---- 얼굴(눈 자루 끝 눈알 + 입) --------------------------------------------
 function drawFace(state, t) {
-  const lx = 22,
-    rx = 36,
-    ey = 21; // 눈 기준 좌표
+  const L = stalkTipL,
+    R = stalkTipR;
 
   // 깜빡임 (idle/working/walking 에서만)
   const blink = (state === 'idle' || state === 'working' || state === 'walking') && t % 4.2 < 0.14;
 
   if (state === 'sleeping' || blink) {
-    // 감은 눈 (부드러운 곡선)
-    closedEye(lx);
-    closedEye(rx);
+    snailClosedEye(L.x, L.y);
+    snailClosedEye(R.x, R.y);
   } else if (state === 'walking') {
     // 걷는 방향을 바라봄
-    openEye(lx, ey, walkDir);
-    openEye(rx, ey, walkDir);
+    snailEye(L.x, L.y, walkDir);
+    snailEye(R.x, R.y, walkDir);
   } else if (state === 'happy' || state === 'notify') {
-    happyEye(lx, ey);
-    happyEye(rx, ey);
+    snailHappyEye(L.x, L.y);
+    snailHappyEye(R.x, R.y);
   } else if (state === 'working') {
     // 집중한 실눈
-    fill(lx, ey + 2, 5, 2, C.eye);
-    fill(rx, ey + 2, 5, 2, C.eye);
+    block(L.x, L.y + 2, 5, 3, C.white);
+    fill(L.x + 1, L.y + 3, 3, 1, C.eye);
+    block(R.x, R.y + 2, 5, 3, C.white);
+    fill(R.x + 1, R.y + 3, 3, 1, C.eye);
   } else {
     // idle — 또렷한 눈 + 살짝 두리번
     if (t - lastLook.t > 2.5) {
@@ -218,36 +205,36 @@ function drawFace(state, t) {
         dy: 0,
       };
     }
-    openEye(lx, ey, lastLook.dx);
-    openEye(rx, ey, lastLook.dx);
+    snailEye(L.x, L.y, lastLook.dx);
+    snailEye(R.x, R.y, lastLook.dx);
   }
 
-  // 코
-  fill(31, 27, 2, 2, C.pink);
-
-  // 입
+  // 입 (머리 앞쪽)
+  const mx = 47,
+    my = 45;
   if (state === 'happy' || state === 'notify') {
     // 활짝 웃는 입
-    block(29, 30, 6, 4, C.mouth);
-    fill(31, 32, 2, 1, C.pink); // 혀
+    block(mx, my, 6, 4, C.mouth);
+    fill(mx + 2, my + 2, 2, 1, C.pink); // 혀
   } else if (state === 'working') {
-    fill(31, 31, 2, 2, C.outline); // 오물오물 집중
+    fill(mx + 2, my + 1, 2, 2, C.outline); // 오물오물 집중
   } else if (state === 'sleeping') {
-    fill(30, 31, 4, 1, C.outline); // 무표정 라인
+    fill(mx + 1, my + 1, 4, 1, C.outline); // 무표정 라인
   } else {
     // idle 미소 ‿
-    fill(29, 30, 1, 1, C.outline);
-    fill(30, 31, 4, 1, C.outline);
-    fill(34, 30, 1, 1, C.outline);
+    fill(mx, my, 1, 1, C.outline);
+    fill(mx + 1, my + 1, 4, 1, C.outline);
+    fill(mx + 5, my, 1, 1, C.outline);
   }
 }
 
-function openEye(x, y, dx) {
-  block(x, y, 6, 7, C.white);
-  fill(x + 2 + dx, y + 2, 2, 3, C.eye); // 눈동자
-  fill(x + 2 + dx, y + 2, 1, 1, C.white); // 반사광
+// 눈 자루 끝의 동그란 눈알
+function snailEye(x, y, dx) {
+  block(x, y, 5, 6, C.white);
+  fill(x + 1 + (dx || 0), y + 2, 2, 3, C.eye); // 눈동자
+  fill(x + 1 + (dx || 0), y + 2, 1, 1, C.white); // 반사광
 }
-function happyEye(x, y) {
+function snailHappyEye(x, y) {
   // ^ 모양
   fill(x, y + 4, 1, 1, C.eye);
   fill(x + 1, y + 2, 1, 1, C.eye);
@@ -255,11 +242,55 @@ function happyEye(x, y) {
   fill(x + 4, y + 2, 1, 1, C.eye);
   fill(x + 5, y + 4, 1, 1, C.eye);
 }
-function closedEye(x) {
+function snailClosedEye(x, y) {
   // ‿ 모양 (감은 눈)
-  fill(x, 25, 1, 1, C.eye);
-  fill(x + 1, 26, 4, 1, C.eye);
-  fill(x + 5, 25, 1, 1, C.eye);
+  fill(x, y + 3, 1, 1, C.eye);
+  fill(x + 1, y + 4, 3, 1, C.eye);
+  fill(x + 4, y + 3, 1, 1, C.eye);
+}
+
+// ---- 껍데기 / 더듬이 그리기 -------------------------------------------------
+// 채워진 원(픽셀 디스크)
+function disc(cx, cy, r, c) {
+  for (let y = -r; y <= r; y++) {
+    const w = Math.floor(Math.sqrt(Math.max(0, r * r - y * y)));
+    if (w > 0) fill(cx - w, cy + y, w * 2, 1, c);
+  }
+}
+function drawShell(t) {
+  const cx = 25,
+    cy = 31,
+    R = 13;
+  disc(cx, cy, R + 1, C.outline); // 외곽선
+  disc(cx, cy, R, C.shell);
+  disc(cx, cy, R - 3, C.shellLight); // 안쪽 밝은 링
+  disc(cx, cy, R - 5, C.shell);
+  drawSpiral(cx, cy, R - 1, C.shellDark); // 나선
+  fill(cx - 1, cy - 1, 2, 2, C.shellDark); // 중심점
+  // 좌상단 하이라이트 테두리
+  for (let a = Math.PI * 0.92; a < Math.PI * 1.5; a += 0.12) {
+    const x = Math.round(cx + Math.cos(a) * (R - 1));
+    const y = Math.round(cy + Math.sin(a) * (R - 1));
+    fill(x, y, 2, 2, C.shellLight);
+  }
+}
+function drawSpiral(cx, cy, R, c) {
+  const maxA = Math.PI * 2 * 2.3; // 2.3 회전
+  for (let a = 0.5; a < maxA; a += 0.1) {
+    const r = (a / maxA) * R;
+    const x = Math.round(cx + Math.cos(a) * r);
+    const y = Math.round(cy + Math.sin(a) * r);
+    fill(x, y, 2, 2, c);
+  }
+}
+// 눈 자루(머리 → 눈알 아래)
+function drawStalk(x0, y0, x1, y1) {
+  const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+  for (let i = 0; i <= steps; i++) {
+    const x = Math.round(x0 + ((x1 - x0) * i) / steps);
+    const y = Math.round(y0 + ((y1 - y0) * i) / steps);
+    fill(x, y, 2, 2, C.body);
+  }
 }
 
 // ---- 이펙트 -----------------------------------------------------------------
