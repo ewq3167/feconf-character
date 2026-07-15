@@ -22,8 +22,8 @@ const http = require('http');
 const DEFAULT_CONFIG = {
   port: 7842,          // 웹훅 HTTP 서버 포트
   token: '',           // 설정 시 웹훅 요청에 x-token 헤더 필요 (빈 값이면 인증 없음)
-  width: 300,
-  height: 320,
+  width: 315, // 달팽이 좌하단 + 말풍선/D-day 팝업 우상단 구성
+  height: 260,
   margin: 24,          // 화면 모서리로부터 여백
   corner: 'bottom-right', // bottom-right | bottom-left | top-right | top-left
   idleSleepMs: 90000,  // 이 시간 동안 이벤트 없으면 잠자기
@@ -667,8 +667,8 @@ ipcMain.on('mascot:drag', (_e, { dx, dy }) => {
   win.setPosition(x + Math.round(dx), y + Math.round(dy));
 });
 ipcMain.on('mascot:click', () => {
-  scheduleSleep(); // 인사 애니메이션은 렌더러가 직접 재생
-  toggleGuide();
+  // 인사 + D-day 팝업은 렌더러가 창 안 오버레이로 처리 (안내 패널은 트레이에서)
+  scheduleSleep();
 });
 ipcMain.on('mascot:rightclick', () => {
   toggleDev();

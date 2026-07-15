@@ -9,6 +9,7 @@
 // 감정 매핑 (파일 네이밍 기반):
 //   잠-숨→sleeping   전진→walking   갸웃→working·curious   인사→greet
 //   신남→happy      놀람→notify    사랑→love   빼꼼→peek   깸→wake
+// 말풍선/D-day 팝업: SVG 모양 + MonaS12 픽셀 폰트 (joohee 작업 병합)
 // ===========================================================================
 
 const cv = document.getElementById('cat');
@@ -284,20 +285,24 @@ function drawCat(now) {
 }
 
 // ===========================================================================
-// 알림 말풍선
+// 알림 말풍선 — SVG 모양 + 픽셀 폰트, 제목은 쓴 그대로 (이모지는 문구에 직접)
 // ===========================================================================
 let bubbleTimer = null;
-const LEVEL_ICON = { info: '💬', success: '✅', warn: '⚠️', urgent: '🚨' };
 
 function showBubble({ title, message, level }) {
+  // D-day 클릭 팝업이 떠 있으면 먼저 빠르게 닫고, 사라진 뒤 상태메시지 표시
+  if (clickBubble && !clickBubble.classList.contains('hidden')) {
+    clickBubble.classList.add('closing');
+    setTimeout(() => {
+      clickBubble.classList.add('hidden');
+      clickBubble.classList.remove('closing');
+      showBubble({ title, message, level });
+    }, 160);
+    return;
+  }
+
   bubble.className = 'level-' + (level || 'info');
-  bTitle.innerHTML = '';
-  const icon = document.createElement('span');
-  icon.textContent = LEVEL_ICON[level] || '💬';
-  const txt = document.createElement('span');
-  txt.textContent = title || '알림';
-  bTitle.appendChild(icon);
-  bTitle.appendChild(txt);
+  bTitle.textContent = title || '알림';
   bMsg.textContent = message || '';
   bMsg.style.display = message ? 'block' : 'none';
   bubble.classList.remove('hidden');
@@ -308,9 +313,13 @@ function showBubble({ title, message, level }) {
   const dur = level === 'urgent' ? 12000 : 6500;
   bubbleTimer = setTimeout(hideBubble, dur);
 
-  // 캐릭터 반응: 놀람 → 신남
+  // 캐릭터 반응 — 성공/정보는 놀람→신남, 실패/경고는 계속 놀람 유지
   setTemp('notify', 1600);
-  setTimeout(() => setTemp('happy', 1800), 1600);
+  if (level === 'urgent' || level === 'warn') {
+    setTimeout(() => setTemp('notify', 2800), 1600);
+  } else {
+    setTimeout(() => setTemp('happy', 1800), 1600);
+  }
 }
 function hideBubble() {
   bubble.classList.add('hidden');
@@ -343,10 +352,77 @@ if (window.mascot) {
 }
 
 // ===========================================================================
+// 클릭 팝업 — 말풍선 안에 D-day (창 안 오버레이)
+// ===========================================================================
+const clickBubble = document.getElementById('click-bubble');
+const cbDday = document.getElementById('cb-dday');
+const cbDiscord = document.getElementById('cb-discord');
+const cbClose = document.getElementById('cb-close');
+if (cbClose) {
+  cbClose.addEventListener('click', (e) => {
+    e.stopPropagation();
+    clickBubble.classList.add('hidden');
+  });
+}
+
+function startOfDay(ts) {
+  const d = new Date(ts);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+// "FECONF까지 D-XX" (D-XX만 핑크) / 당일 "D-DAY" / 이후 "FECONF 종료ㅠㅠ"
+function setDdayContent(conf, now) {
+  const s = conf.startDate || conf.date;
+  if (!s) {
+    cbDday.textContent = '';
+    return;
+  }
+  const diff = Math.round((startOfDay(new Date(s).getTime()) - startOfDay(now)) / 86400000);
+  if (diff > 0) {
+    cbDday.innerHTML = 'FECONF까지 <span class="dday-num">D-' + diff + '</span>';
+  } else if (diff === 0) {
+    cbDday.innerHTML = 'FECONF까지 <span class="dday-num">D-DAY</span>';
+  } else {
+    cbDday.textContent = 'FECONF 종료ㅠㅠ';
+  }
+}
+async function toggleClickBubble() {
+  if (!clickBubble.classList.contains('hidden')) {
+    clickBubble.classList.add('hidden');
+    return;
+  }
+  let data = { conference: {}, now: Date.now() };
+  if (window.mascot && window.mascot.guideGetData) {
+    try {
+      const d = await window.mascot.guideGetData();
+      if (d) data = d;
+    } catch (_) {}
+  }
+  const conf = data.conference || {};
+  setDdayContent(conf, data.now || Date.now());
+  if (cbDiscord) {
+    const url = conf.discord && conf.discord.url;
+    if (url) {
+      cbDiscord.style.display = '';
+      cbDiscord.onclick = (e) => {
+        e.stopPropagation();
+        if (window.mascot && window.mascot.openExternal) window.mascot.openExternal(url);
+      };
+    } else {
+      cbDiscord.style.display = 'none';
+    }
+  }
+  clickBubble.classList.remove('hidden');
+  void clickBubble.offsetWidth; // pop 애니메이션 재생
+}
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') clickBubble.classList.add('hidden');
+});
+
+// ===========================================================================
 // 클릭 통과 (투명 영역)
 // ===========================================================================
-// 창은 300x320 이지만 실제 캐릭터는 하단 일부뿐 — 캐릭터/말풍선 위에 커서가
-// 있을 때만 마우스를 잡고, 나머지 투명 영역은 아래 앱으로 클릭을 통과시킨다.
+// 창은 넓지만 실제 캐릭터/말풍선은 일부뿐 — 그 위에 커서가 있을 때만 마우스를
+// 잡고, 나머지 투명 영역은 아래 앱으로 클릭을 통과시킨다.
 // (메인 프로세스가 forward:true 로 mousemove 를 계속 보내줘서 hover 감지 가능)
 let dragging = false;
 
@@ -355,10 +431,11 @@ function setIgnoreMouse(ignore) {
     window.mascot.setIgnoreMouse(ignore);
   }
 }
+const INTERACTIVE = [cv, bubble, clickBubble];
 function overInteractive() {
-  return cv.matches(':hover') || bubble.matches(':hover');
+  return INTERACTIVE.some((el) => el.matches(':hover'));
 }
-for (const el of [cv, bubble]) {
+for (const el of INTERACTIVE) {
   el.addEventListener('mouseenter', () => setIgnoreMouse(false));
   el.addEventListener('mouseleave', () => {
     // 드래그 중 커서가 잠깐 벗어나도 창을 놓치지 않도록 유지
@@ -395,13 +472,14 @@ window.addEventListener('mousemove', (e) => {
 });
 window.addEventListener('mouseup', () => {
   if (dragging && moved < 4) {
-    // 클릭 → 자고 있으면 깨우고, 아니면 인사
+    // 클릭 → 자고 있으면 깨우고, 아니면 인사 + D-day 팝업 토글
     if (baseState === 'sleeping') {
       baseState = 'idle';
       wakeThen(() => setTemp('greet'));
     } else {
       setTemp('greet');
     }
+    toggleClickBubble();
     if (window.mascot) window.mascot.click();
   }
   dragging = false;

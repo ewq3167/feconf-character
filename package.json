@@ -1,11 +1,15 @@
 {
   "name": "clawd-conf-mascot",
   "version": "0.1.0",
-  "description": "컨퍼런스 안내용 픽셀아트 데스크탑 마스코트 — 웹훅/스케줄/활동 반응",
+  "description": "픽셀아트 데스크탑 달팽이 마스코트 — 빌드/테스트/dev 서버 상태 메이트 (+ 컨퍼런스 안내)",
   "main": "main.js",
+  "bin": {
+    "mascot-watch": "integrations/mascot-watch.js"
+  },
   "scripts": {
     "start": "electron .",
-    "notify": "node scripts/send.js"
+    "notify": "node scripts/send.js",
+    "watch": "node integrations/mascot-watch.js"
   },
   "author": "",
   "license": "MIT",

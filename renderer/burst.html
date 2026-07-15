@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Burst</title>
+    <link rel="stylesheet" href="burst.css" />
+  </head>
+  <body>
+    <div id="burst">
+      <!-- 스타버스트 모양 (Frame 2) -->
+      <svg id="burst-shape" viewBox="0 0 351 234" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path
+          d="M61.6184 25.6865L116.198 63.1612L136.166 12.171L155.469 53.3317L190.08 1.72729L220.032 41.6593L260.634 15.8571V49.0314L307.892 8.48499L287.924 71.1476L346.497 88.3491L276.609 106.165L340.507 150.397H267.29L287.924 203.23L240.001 164.527L215.373 206.302L190.08 173.742L155.469 214.289L150.81 173.742L122.189 203.23L116.198 164.527L22.3479 229.647L92.9019 146.097L22.3479 150.397L70.2715 118.452L3.71094 92.6494L92.9019 84.0487L61.6184 25.6865Z"
+          fill="white"
+          stroke="black"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <!-- 중앙 콘텐츠: D-day + 디스코드 버튼 -->
+      <div id="burst-content">
+        <div id="dday-label">행사까지</div>
+        <div id="dday">D-–</div>
+        <button id="discord-btn">디스코드 바로가기</button>
+      </div>
+    </div>
+    <script src="burst.js"></script>
+  </body>
+</html>
