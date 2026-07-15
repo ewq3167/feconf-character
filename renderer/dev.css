@@ -182,6 +182,11 @@ header .tag {
   border-color: #fddc3f;
   color: #fddc3f;
 }
+.chip.flash {
+  background: #5865f2;
+  border-color: #5865f2;
+  color: #fff;
+}
 
 /* -------- 결과 리드아웃 -------- */
 #readout {

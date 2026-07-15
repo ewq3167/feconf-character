@@ -29,12 +29,9 @@ body {
 
 #cat {
   width: 168px;
-  height: 168px;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+  height: 115.5px; /* 논리 64x44 */
   -webkit-app-region: no-drag;
   cursor: grab;
-  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.18));
   z-index: 2;
 }
 #cat:active {
@@ -42,7 +39,8 @@ body {
 }
 
 #shadow {
-  width: 96px;
+  display: none;
+  width: 230px;
   height: 14px;
   margin-top: -12px;
   border-radius: 50%;

@@ -10,7 +10,9 @@ contextBridge.exposeInMainWorld('mascot', {
 
   // 렌더러 → 메인
   getConfig: () => ipcRenderer.invoke('mascot:getConfig'),
+  getAnims: () => ipcRenderer.invoke('mascot:getAnims'),
   drag: (dx, dy) => ipcRenderer.send('mascot:drag', { dx, dy }),
+  setIgnoreMouse: (ignore) => ipcRenderer.send('mascot:setIgnoreMouse', ignore),
   click: () => ipcRenderer.send('mascot:click'),
   rightClick: () => ipcRenderer.send('mascot:rightclick'),
 
@@ -25,5 +27,6 @@ contextBridge.exposeInMainWorld('mascot', {
 contextBridge.exposeInMainWorld('dev', {
   getInit: () => ipcRenderer.invoke('dev:getInit'),
   apply: (opts) => ipcRenderer.invoke('dev:apply', opts),
+  setState: (state, ttl) => ipcRenderer.send('dev:state', { state, ttl }),
   hide: () => ipcRenderer.send('dev:hide'),
 });

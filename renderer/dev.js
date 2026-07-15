@@ -128,6 +128,23 @@ $('realtime').addEventListener('click', () => {
   apply();
 });
 
+// ---- 달팽이 상태/감정 ----
+document.querySelectorAll('#snail-base button').forEach((b) => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#snail-base button').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+    window.dev.setState(b.dataset.state); // ttl 없음 → 지속 상태
+  });
+});
+
+document.querySelectorAll('#snail-emotes .chip').forEach((b) => {
+  b.addEventListener('click', () => {
+    window.dev.setState(b.dataset.state); // ttl 없음 → 렌더러가 애니메이션 길이만큼 재생
+    b.classList.add('flash');
+    setTimeout(() => b.classList.remove('flash'), 350);
+  });
+});
+
 $('hide').addEventListener('click', () => {
   if (window.dev && window.dev.hide) window.dev.hide();
 });

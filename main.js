@@ -22,8 +22,8 @@ const http = require('http');
 const DEFAULT_CONFIG = {
   port: 7842,          // 웹훅 HTTP 서버 포트
   token: '',           // 설정 시 웹훅 요청에 x-token 헤더 필요 (빈 값이면 인증 없음)
-  width: 240,
-  height: 300,
+  width: 300,
+  height: 320,
   margin: 24,          // 화면 모서리로부터 여백
   corner: 'bottom-right', // bottom-right | bottom-left | top-right | top-left
   idleSleepMs: 90000,  // 이 시간 동안 이벤트 없으면 잠자기
@@ -109,7 +109,10 @@ function createWindow() {
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
-  // 창을 클릭 통과시키지 않음(드래그 가능해야 하므로). 대신 배경 투명.
+  // 기본은 클릭 통과 — 렌더러가 캐릭터/말풍선 위에 커서가 올라오면 해제한다.
+  // forward: true 로 mousemove 는 계속 렌더러에 전달되어 hover 감지가 가능.
+  win.setIgnoreMouseEvents(true, { forward: true });
+
   win.on('closed', () => {
     win = null;
   });
@@ -245,7 +248,7 @@ function showGuide() {
 function createDevWindow() {
   devWin = new BrowserWindow({
     width: 340,
-    height: 470,
+    height: 640,
     show: false,
     frame: false,
     transparent: true,
@@ -589,7 +592,7 @@ function trayIcon() {
 
 function buildTrayMenu() {
   return Menu.buildFromTemplate([
-    { label: '👋 인사시키기', click: () => handleEvent('state', { state: 'happy', ttl: 2500 }) },
+    { label: '👋 인사시키기', click: () => handleEvent('state', { state: 'greet' }) },
     { label: '📋 안내 패널 열기/닫기', click: () => toggleGuide() },
     {
       label: '🔔 테스트 알림',
@@ -626,20 +629,45 @@ function createTray() {
   tray = new Tray(trayIcon());
   tray.setToolTip('컨퍼런스 마스코트');
   tray.setContextMenu(buildTrayMenu());
-  tray.on('click', () => handleEvent('state', { state: 'happy', ttl: 2000 }));
+  tray.on('click', () => handleEvent('state', { state: 'greet' }));
 }
 
 // ---------------------------------------------------------------------------
 // IPC (렌더러 → 메인)
 // ---------------------------------------------------------------------------
 ipcMain.handle('mascot:getConfig', () => ({ dnd, port: CONFIG.port }));
+// 캐릭터 애니메이션 (charactor/*.json — 마름모 아트보드 포맷)
+ipcMain.handle('mascot:getAnims', () => {
+  const dir = path.join(__dirname, 'charactor');
+  const out = {};
+  try {
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith('.json')) continue;
+      try {
+        out[path.basename(f, '.json').normalize('NFC')] = JSON.parse(
+          fs.readFileSync(path.join(dir, f), 'utf8')
+        );
+      } catch (e) {
+        console.error('[anims] 파싱 실패:', f, e.message);
+      }
+    }
+  } catch (e) {
+    console.error('[anims] 읽기 실패:', e.message);
+  }
+  return out;
+});
+ipcMain.on('mascot:setIgnoreMouse', (_e, ignore) => {
+  if (win && !win.isDestroyed()) {
+    win.setIgnoreMouseEvents(!!ignore, { forward: true });
+  }
+});
 ipcMain.on('mascot:drag', (_e, { dx, dy }) => {
   if (!win) return;
   const [x, y] = win.getPosition();
   win.setPosition(x + Math.round(dx), y + Math.round(dy));
 });
 ipcMain.on('mascot:click', () => {
-  handleEvent('state', { state: 'happy', ttl: 1500 });
+  scheduleSleep(); // 인사 애니메이션은 렌더러가 직접 재생
   toggleGuide();
 });
 ipcMain.on('mascot:rightclick', () => {
@@ -664,6 +692,10 @@ ipcMain.handle('dev:apply', (_e, opts = {}) => {
   mockNow = opts.mockNow != null ? opts.mockNow : null;
   showGuide();
   return { now: effNow(), phase: conferencePhase(loadConference()) };
+});
+// 달팽이 상태/감정 전환 (dev 패널)
+ipcMain.on('dev:state', (_e, opts = {}) => {
+  handleEvent('state', { state: opts.state, ttl: opts.ttl });
 });
 ipcMain.on('dev:hide', () => {
   if (devWin && devWin.isVisible()) devWin.hide();
@@ -690,11 +722,11 @@ app.whenReady().then(() => {
     else win.show();
   });
   globalShortcut.register('CommandOrControl+Shift+H', () =>
-    handleEvent('state', { state: 'happy', ttl: 2000 })
+    handleEvent('state', { state: 'greet' })
   );
 
   // 첫 인사
-  setTimeout(() => handleEvent('state', { state: 'happy', ttl: 2500 }), 800);
+  setTimeout(() => handleEvent('state', { state: 'greet' }), 800);
 });
 
 app.on('window-all-closed', () => {

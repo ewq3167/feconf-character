@@ -40,6 +40,29 @@
           <div class="chips" id="chips"></div>
         </div>
 
+        <div class="group">
+          <div class="label">달팽이 상태 (지속)</div>
+          <div class="seg" id="snail-base">
+            <button data-state="idle">기본</button>
+            <button data-state="working">작업</button>
+            <button data-state="walking">걷기</button>
+            <button data-state="sleeping">잠</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="label">달팽이 감정 (일회성)</div>
+          <div class="chips" id="snail-emotes">
+            <button class="chip" data-state="greet">👋 인사</button>
+            <button class="chip" data-state="happy">🎉 신남</button>
+            <button class="chip" data-state="notify">❗ 놀람</button>
+            <button class="chip" data-state="love">❤️ 사랑</button>
+            <button class="chip" data-state="curious">❓ 갸웃</button>
+            <button class="chip" data-state="peek">👀 빼꼼</button>
+            <button class="chip" data-state="wake">⏰ 깸</button>
+          </div>
+        </div>
+
         <div id="readout">
           <div>결과 phase: <b id="ro-phase">-</b></div>
           <div id="ro-time">-</div>
