@@ -206,15 +206,76 @@ if (window.mascot && window.mascot.getAnims) {
 }
 
 // ---- 말풍선 스타일 — 기존 SVG or JSON 픽셀 말풍선 (charactor/말풍선-*.json) ----
+// 텍스트가 길면 캡(모서리·꼬리·탭)은 그대로 두고 중앙의 균일한 컬럼을
+// 그리드 규칙대로 복제해 좌우로 넓힌다 (insL/insR = 삽입 지점, 꼬리 양옆).
+// baseW/cellCss 는 기본 표시 폭과 셀 1칸의 CSS px, padL/padR 는 텍스트 여백.
 const bubbleImg = document.getElementById('bubble-img');
 const bubbleShape = document.getElementById('bubble-shape');
+const bText = document.getElementById('bubble-text');
 const BUBBLE_STYLES = {
-  classic: null, // 기존 SVG 생각풍선
-  comic: { file: '말풍선-만화' },
-  purple: { file: '말풍선-메시지-퍼플' },
-  cozy: { file: '말풍선-코지' },
+  classic: null, // 기존 SVG 생각풍선 (고정 크기)
+  comic: { file: '말풍선-만화', baseW: 208, cellCss: 6.05, insL: 6, insR: 20, padL: 32, padR: 24 },
+  purple: { file: '말풍선-메시지-퍼플', baseW: 196, cellCss: 7.38, insL: 6, insR: 16, padL: 26, padR: 18 },
+  cozy: { file: '말풍선-코지', baseW: 212, cellCss: 5.83, insL: 9, insR: 24, padL: 28, padR: 18 },
 };
 let bubbleStyle = 'classic';
+const BUBBLE_MAX_W = 300; // 창(315px) 안에서 최대 폭
+
+// 텍스트 폭 측정이 실제 폰트로 되도록 미리 로드
+if (document.fonts && document.fonts.load) {
+  document.fonts.load('700 12px MonaS12');
+  document.fonts.load('700 12.5px Pretendard');
+  document.fonts.load('400 11.5px Pretendard');
+}
+
+const measureCtx = document.createElement('canvas').getContext('2d');
+function textWidth(text, font) {
+  measureCtx.font = font;
+  return measureCtx.measureText(text).width;
+}
+
+// 중앙 컬럼 복제 — insL/insR 위치의 컬럼을 extra 칸만큼 늘린다 (좌우 반반)
+function stretchPage(page, insL, insR, extra) {
+  const nL = Math.floor(extra / 2);
+  const nR = extra - nL;
+  const grid = page.grid.map((row) => {
+    const r = [];
+    for (let x = 0; x < page.cfg.cols; x++) {
+      if (x === insL) for (let k = 0; k < nL; k++) r.push(row[x] || null);
+      if (x === insR) for (let k = 0; k < nR; k++) r.push(row[x] || null);
+      r.push(x < row.length ? row[x] || null : null);
+    }
+    return r;
+  });
+  return { cfg: { ...page.cfg, cols: page.cfg.cols + extra }, grid };
+}
+
+// 현재 제목/메시지 폭에 맞춰 말풍선 이미지를 다시 뽑고 폭을 지정
+function sizeBubble() {
+  const conf = BUBBLE_STYLES[bubbleStyle];
+  if (!conf) {
+    bubble.style.width = '';
+    return;
+  }
+  const data = animsRaw && animsRaw[conf.file.normalize('NFC')];
+  if (!data) return;
+  const pret = document.body.classList.contains('font-pretendard');
+  const titleF = pret ? '700 12.5px Pretendard, sans-serif' : '700 12px MonaS12, sans-serif';
+  const msgF = pret ? '400 11.5px Pretendard, sans-serif' : '700 12px MonaS12, sans-serif';
+  const tw = Math.max(
+    textWidth(bTitle.textContent, titleF),
+    bMsg.style.display === 'none' ? 0 : textWidth(bMsg.textContent, msgF)
+  );
+  const needW = conf.padL + tw + 8 + conf.padR;
+  const maxExtra = Math.floor((BUBBLE_MAX_W - conf.baseW) / conf.cellCss);
+  const extra = Math.max(0, Math.min(maxExtra, Math.ceil((needW - conf.baseW) / conf.cellCss)));
+  conf.cache = conf.cache || {};
+  if (!conf.cache[extra]) {
+    conf.cache[extra] = buildFrame(stretchPage(data.pages[0], conf.insL, conf.insR, extra), 16).toDataURL();
+  }
+  bubbleImg.src = conf.cache[extra];
+  bubble.style.width = Math.round(conf.baseW + extra * conf.cellCss) + 'px';
+}
 
 function applyBubbleStyle(style) {
   if (!(style in BUBBLE_STYLES)) return;
@@ -223,11 +284,15 @@ function applyBubbleStyle(style) {
   if (!conf) {
     bubbleShape.classList.remove('hidden');
     bubbleImg.classList.add('hidden');
+    bubble.style.width = '';
+    bText.style.left = '';
+    bText.style.right = '';
   } else {
     const data = animsRaw && animsRaw[conf.file.normalize('NFC')];
     if (!data) return; // 로드 전이면 getAnims 완료 시 재적용됨
-    if (!conf.url) conf.url = buildFrame(data.pages[0], 16).toDataURL(); // 고해상도 1회 렌더
-    bubbleImg.src = conf.url;
+    bText.style.left = conf.padL + 'px'; // 캡 폭은 고정 px (스트레치와 무관)
+    bText.style.right = conf.padR + 'px';
+    sizeBubble();
     bubbleShape.classList.add('hidden');
     bubbleImg.classList.remove('hidden');
   }
@@ -343,6 +408,7 @@ function showBubble({ title, message, level }) {
   bTitle.textContent = title || '알림';
   bMsg.textContent = message || '';
   bMsg.style.display = message ? 'block' : 'none';
+  sizeBubble(); // 텍스트 길이에 맞춰 중앙 컬럼 스트레치
   bubble.classList.remove('hidden');
   // 리플로우로 애니메이션 재시작
   void bubble.offsetWidth;
