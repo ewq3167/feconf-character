@@ -398,6 +398,17 @@ if (window.mascot) {
       });
     });
   }
+  // dev 패널에서 말풍선 폰트 전환 (pixel | pretendard)
+  if (window.mascot.onFont) {
+    window.mascot.onFont(({ font }) => {
+      document.body.classList.toggle('font-pretendard', font === 'pretendard');
+      showBubble({
+        title: '⭐️ 야호~빌드 완료~🎵⭐️',
+        message: '폰트 미리보기 · ' + (font === 'pretendard' ? '프리텐다드' : '픽셀(MonaS12)'),
+        level: 'success',
+      });
+    });
+  }
 }
 
 // ===========================================================================

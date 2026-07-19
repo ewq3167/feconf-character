@@ -110,6 +110,9 @@ header .tag {
   border-color: #5865f2;
   color: #fff;
 }
+.seg.seg-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
 
 /* -------- 시간 컨트롤 -------- */
 .mini {

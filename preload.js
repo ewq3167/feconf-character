@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('mascot', {
   onNotify: (cb) => ipcRenderer.on('mascot:notify', (_e, d) => cb(d)),
   onDnd: (cb) => ipcRenderer.on('mascot:dnd', (_e, d) => cb(d)),
   onBubbleStyle: (cb) => ipcRenderer.on('mascot:bubble', (_e, d) => cb(d)),
+  onFont: (cb) => ipcRenderer.on('mascot:font', (_e, d) => cb(d)),
 
   // 렌더러 → 메인
   getConfig: () => ipcRenderer.invoke('mascot:getConfig'),
@@ -30,5 +31,6 @@ contextBridge.exposeInMainWorld('dev', {
   apply: (opts) => ipcRenderer.invoke('dev:apply', opts),
   setState: (state, ttl) => ipcRenderer.send('dev:state', { state, ttl }),
   setBubble: (style) => ipcRenderer.send('dev:bubble', { style }),
+  setFont: (font) => ipcRenderer.send('dev:font', { font }),
   hide: () => ipcRenderer.send('dev:hide'),
 });

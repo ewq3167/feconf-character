@@ -248,7 +248,7 @@ function showGuide() {
 function createDevWindow() {
   devWin = new BrowserWindow({
     width: 340,
-    height: 720,
+    height: 800,
     show: false,
     frame: false,
     transparent: true,
@@ -700,6 +700,10 @@ ipcMain.on('dev:state', (_e, opts = {}) => {
 // 말풍선 스타일 전환 (dev 패널)
 ipcMain.on('dev:bubble', (_e, opts = {}) => {
   sendToMascot('mascot:bubble', { style: opts.style });
+});
+// 말풍선 폰트 전환 (dev 패널)
+ipcMain.on('dev:font', (_e, opts = {}) => {
+  sendToMascot('mascot:font', { font: opts.font });
 });
 ipcMain.on('dev:hide', () => {
   if (devWin && devWin.isVisible()) devWin.hide();

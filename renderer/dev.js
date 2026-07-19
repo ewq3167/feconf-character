@@ -145,6 +145,14 @@ document.querySelectorAll('#bubble-seg button').forEach((b) => {
   });
 });
 
+document.querySelectorAll('#font-seg button').forEach((b) => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#font-seg button').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+    window.dev.setFont(b.dataset.font); // 적용 + 미리보기 말풍선 표시
+  });
+});
+
 document.querySelectorAll('#snail-emotes .chip').forEach((b) => {
   b.addEventListener('click', () => {
     window.dev.setState(b.dataset.state); // ttl 없음 → 렌더러가 애니메이션 길이만큼 재생

@@ -12,6 +12,20 @@
   src: url("fonts/MonaS12.woff2") format("woff2");
 }
 
+/* 프리텐다드 (SIL OFL 1.1) — 말풍선 텍스트 대안 폰트, 앱에 번들 */
+@font-face {
+  font-family: "Pretendard";
+  font-style: normal;
+  font-weight: 700;
+  src: url("fonts/Pretendard-Bold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Pretendard";
+  font-style: normal;
+  font-weight: 400;
+  src: url("fonts/Pretendard-Regular.woff2") format("woff2");
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -130,6 +144,25 @@ body {
 #bubble.level-urgent {
   animation: pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
     shake 0.5s ease 0.28s 2;
+}
+
+/* -------- 말풍선 폰트 전환 — 픽셀(MonaS12, 기본) vs 프리텐다드 -------- */
+body.font-pretendard #bubble-text,
+body.font-pretendard #cb-row {
+  font-family: "Pretendard", -apple-system, "Apple SD Gothic Neo", sans-serif;
+  -webkit-font-smoothing: antialiased; /* 픽셀 폰트용 none 해제 */
+  font-smooth: auto;
+  letter-spacing: -0.01em;
+}
+body.font-pretendard #bubble-title {
+  font-size: 12.5px;
+}
+body.font-pretendard #bubble-msg {
+  font-size: 11.5px;
+  font-weight: 400;
+}
+body.font-pretendard #cb-dday {
+  font-size: 15px;
 }
 
 /* -------- JSON 픽셀 말풍선 (charactor/말풍선-*.json) -------- */
