@@ -248,7 +248,7 @@ function showGuide() {
 function createDevWindow() {
   devWin = new BrowserWindow({
     width: 340,
-    height: 640,
+    height: 720,
     show: false,
     frame: false,
     transparent: true,
@@ -696,6 +696,10 @@ ipcMain.handle('dev:apply', (_e, opts = {}) => {
 // 달팽이 상태/감정 전환 (dev 패널)
 ipcMain.on('dev:state', (_e, opts = {}) => {
   handleEvent('state', { state: opts.state, ttl: opts.ttl });
+});
+// 말풍선 스타일 전환 (dev 패널)
+ipcMain.on('dev:bubble', (_e, opts = {}) => {
+  sendToMascot('mascot:bubble', { style: opts.style });
 });
 ipcMain.on('dev:hide', () => {
   if (devWin && devWin.isVisible()) devWin.hide();

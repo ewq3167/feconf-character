@@ -92,9 +92,9 @@ function drawBlock(g, x, y, w, h, color, m) {
   g.fill();
 }
 
-function buildFrame(page) {
+function buildFrame(page, cellpx) {
   const cfg = page.cfg;
-  const cell = CELLPX;
+  const cell = cellpx || CELLPX;
   const tanA = Math.tan((Math.abs(cfg.angleDeg) * Math.PI) / 180);
   const H = cfg.rows * cell;
   const c = document.createElement('canvas');
@@ -153,7 +153,7 @@ function framesFor(file) {
   let frames = frameCache.get(file);
   if (!frames) {
     const data = animData(file);
-    frames = data ? data.pages.map(buildFrame) : [];
+    frames = data ? data.pages.map((p) => buildFrame(p)) : [];
     frameCache.set(file, frames);
   }
   return frames;
@@ -167,7 +167,8 @@ function computeView() {
     minY = Infinity,
     maxY = -Infinity,
     tanA = 0.36;
-  for (const data of Object.values(animsRaw)) {
+  for (const [key, data] of Object.entries(animsRaw)) {
+    if (!key.startsWith(FILE_PREFIX)) continue; // 스네일 프레임만 (말풍선 JSON 제외)
     for (const page of data.pages) {
       const cfg = page.cfg;
       const cell = CELLPX;
@@ -200,7 +201,44 @@ if (window.mascot && window.mascot.getAnims) {
     animsRaw = d;
     computeView();
     framesFor(ANIM.idle.file); // 첫 화면용 미리 빌드
+    applyBubbleStyle(bubbleStyle); // JSON 픽셀 말풍선 준비
   });
+}
+
+// ---- 말풍선 스타일 — 기존 SVG or JSON 픽셀 말풍선 (charactor/말풍선-*.json) ----
+const bubbleImg = document.getElementById('bubble-img');
+const bubbleShape = document.getElementById('bubble-shape');
+const BUBBLE_STYLES = {
+  classic: null, // 기존 SVG 생각풍선
+  comic: { file: '말풍선-만화' },
+  purple: { file: '말풍선-메시지-퍼플' },
+  cozy: { file: '말풍선-코지' },
+};
+let bubbleStyle = 'classic';
+
+function applyBubbleStyle(style) {
+  if (!(style in BUBBLE_STYLES)) return;
+  bubbleStyle = style;
+  const conf = BUBBLE_STYLES[style];
+  if (!conf) {
+    bubbleShape.classList.remove('hidden');
+    bubbleImg.classList.add('hidden');
+  } else {
+    const data = animsRaw && animsRaw[conf.file.normalize('NFC')];
+    if (!data) return; // 로드 전이면 getAnims 완료 시 재적용됨
+    if (!conf.url) conf.url = buildFrame(data.pages[0], 16).toDataURL(); // 고해상도 1회 렌더
+    bubbleImg.src = conf.url;
+    bubbleShape.classList.add('hidden');
+    bubbleImg.classList.remove('hidden');
+  }
+  syncBubbleClass();
+}
+// level-* 클래스와 style-* 클래스를 함께 유지
+function syncBubbleClass(level) {
+  const lv = level || (bubble.className.match(/level-(\w+)/) || [])[1] || 'info';
+  bubble.className =
+    'level-' + lv + (BUBBLE_STYLES[bubbleStyle] ? ' style-' + bubbleStyle : '') +
+    (bubble.classList.contains('hidden') ? ' hidden' : '');
 }
 
 // ---- 상태 관리 --------------------------------------------------------------
@@ -301,7 +339,7 @@ function showBubble({ title, message, level }) {
     return;
   }
 
-  bubble.className = 'level-' + (level || 'info');
+  syncBubbleClass(level || 'info');
   bTitle.textContent = title || '알림';
   bMsg.textContent = message || '';
   bMsg.style.display = message ? 'block' : 'none';
@@ -349,6 +387,17 @@ if (window.mascot) {
   window.mascot.onDnd(({ dnd }) => {
     dndBadge.classList.toggle('hidden', !dnd);
   });
+  // dev 패널에서 말풍선 스타일 전환 → 적용 + 미리보기 표시
+  if (window.mascot.onBubbleStyle) {
+    window.mascot.onBubbleStyle(({ style }) => {
+      applyBubbleStyle(style);
+      showBubble({
+        title: '⭐️ 야호~빌드 완료~🎵⭐️',
+        message: '말풍선 미리보기 · ' + style,
+        level: 'success',
+      });
+    });
+  }
 }
 
 // ===========================================================================

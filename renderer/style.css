@@ -132,6 +132,53 @@ body {
     shake 0.5s ease 0.28s 2;
 }
 
+/* -------- JSON 픽셀 말풍선 (charactor/말풍선-*.json) -------- */
+#bubble-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.22));
+}
+/* 만화: 흰 몸통 + 먹 테두리, 꼬리 하단 */
+#bubble.style-comic {
+  width: 208px;
+}
+#bubble.style-comic #bubble-text {
+  top: 6%;
+  left: 15%;
+  right: 10%;
+  bottom: 22%;
+}
+/* 퍼플: 통짜 퍼플 슬랩, 흰 텍스트 */
+#bubble.style-purple {
+  width: 196px;
+}
+#bubble.style-purple #bubble-text {
+  top: 2%;
+  left: 13%;
+  right: 8%;
+  bottom: 16%;
+}
+#bubble.style-purple #bubble-title {
+  color: #ffffff;
+}
+#bubble.style-purple #bubble-msg {
+  color: #dedce3;
+}
+/* 코지: 크림 몸통 + 주황 탭 */
+#bubble.style-cozy {
+  width: 212px;
+}
+#bubble.style-cozy #bubble-text {
+  top: 10%;
+  left: 13%;
+  right: 8%;
+  bottom: 24%;
+}
+#bubble.style-cozy #bubble-msg {
+  color: #5a5344;
+}
+
 /* -------- 클릭 팝업 (Frame 3: 분홍 D-day 알약 + 밑줄 링크 말풍선) -------- */
 #click-bubble {
   position: fixed;
