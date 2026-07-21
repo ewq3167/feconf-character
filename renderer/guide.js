@@ -36,6 +36,25 @@ function el(tag, cls, text) {
   return e;
 }
 
+// ---- SVG 아이콘 (Lucide 스타일 stroke + Discord 로고) ----
+const ICONS = {
+  calendar:
+    '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  pin: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+  map: '<path d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3-6-3Z"/><path d="M9 3v15"/><path d="M15 6v15"/>',
+  arrow: '<line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/>',
+  pencil: '<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
+  discord:
+    '<path fill="currentColor" stroke="none" d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.291.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418Z"/>',
+};
+function iconEl(name, cls) {
+  const span = el('span', cls);
+  span.innerHTML =
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ` +
+    `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+  return span;
+}
+
 function startOfDay(ds) {
   const d = ds != null ? new Date(ds) : new Date();
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -81,12 +100,12 @@ function discordCard(conf) {
   const d = conf.discord;
   if (!d || !d.url) return null;
   const card = el('button', 'link-card discord');
-  card.appendChild(el('span', 'lc-icon', '💬'));
+  card.appendChild(iconEl('discord', 'lc-icon'));
   const body = el('div', 'lc-body');
   body.appendChild(el('div', 'lc-title', 'Discord 커뮤니티'));
   if (d.note) body.appendChild(el('div', 'lc-sub', d.note));
   card.appendChild(body);
-  card.appendChild(el('span', 'lc-arrow', '↗'));
+  card.appendChild(iconEl('arrow', 'lc-arrow'));
   card.addEventListener('click', () => openLink(d.url));
   return card;
 }
@@ -104,14 +123,14 @@ function renderBefore(conf) {
 
   const info = el('div', 'info-list');
   const rows = [
-    ['📅', dateRange(conf)],
-    ['📍', conf.venue],
-    ['🗺️', conf.address],
+    ['calendar', dateRange(conf)],
+    ['pin', conf.venue],
+    ['map', conf.address],
   ];
   for (const [icon, val] of rows) {
     if (!val) continue;
     const r = el('div', 'info-row');
-    r.appendChild(el('span', 'info-icon', icon));
+    r.appendChild(iconEl(icon, 'info-icon'));
     r.appendChild(el('span', 'info-val', val));
     info.appendChild(r);
   }
@@ -130,7 +149,7 @@ function renderBefore(conf) {
 // -------------------- 당일 --------------------
 function renderDayof(conf) {
   subtitleEl.textContent = data.subtitle || '오늘의 세션';
-  footerEl.textContent = '마스코트를 다시 클릭하면 닫혀요';
+  footerEl.textContent = '✕ 버튼이나 트레이 메뉴로 닫을 수 있어요';
 
   const now = simNow();
   const items = [...(data.items || [])].sort((a, b) => new Date(a.time) - new Date(b.time));
@@ -178,7 +197,9 @@ function renderAfter(conf) {
   contentEl.appendChild(thanks);
 
   if (conf.reviewUrl) {
-    const btn = el('button', 'cta', '✍️  후기 남기기');
+    const btn = el('button', 'cta');
+    btn.appendChild(iconEl('pencil', 'cta-icon'));
+    btn.appendChild(document.createTextNode('후기 남기기'));
     btn.addEventListener('click', () => openLink(conf.reviewUrl));
     contentEl.appendChild(btn);
     if (conf.reviewNote) contentEl.appendChild(el('div', 'cta-note', conf.reviewNote));

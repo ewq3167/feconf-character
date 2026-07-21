@@ -49,6 +49,7 @@ const ANIM = {
 
 // ---- 프레임 렌더링 (마름모 캡슐 병합) ------------------------------------------
 const CELLPX = 10; // 오프스크린 셀 픽셀 (백킹 해상도에 맞춤)
+const CHAR_SCALE = 0.5; // 캐릭터 전체 배율 (1 = 창에 꽉 참)
 let animsRaw = null; // { '스네일-와이드-…': { pages } }
 let VIEW = null; // 그리드 px → 논리 좌표 매핑 { s, ox, oy, cellL, tanA }
 const frameCache = new Map(); // file → HTMLCanvasElement[]
@@ -186,7 +187,7 @@ function computeView() {
       }
     }
   }
-  const s = Math.min(62 / (maxX - minX), 40 / (maxY - minY));
+  const s = Math.min(62 / (maxX - minX), 40 / (maxY - minY)) * CHAR_SCALE;
   VIEW = {
     s,
     ox: (LW - (maxX - minX) * s) / 2 - (minX + 2) * s, // -2: buildFrame 패딩 보정
@@ -392,14 +393,14 @@ function drawCat(now) {
 // ===========================================================================
 let bubbleTimer = null;
 
-function showBubble({ title, message, level }) {
+function showBubble({ title, message, level, duration, react = true }) {
   // D-day 클릭 팝업이 떠 있으면 먼저 빠르게 닫고, 사라진 뒤 상태메시지 표시
   if (clickBubble && !clickBubble.classList.contains('hidden')) {
     clickBubble.classList.add('closing');
     setTimeout(() => {
       clickBubble.classList.add('hidden');
       clickBubble.classList.remove('closing');
-      showBubble({ title, message, level });
+      showBubble({ title, message, level, duration, react });
     }, 160);
     return;
   }
@@ -414,15 +415,18 @@ function showBubble({ title, message, level }) {
   void bubble.offsetWidth;
 
   if (bubbleTimer) clearTimeout(bubbleTimer);
-  const dur = level === 'urgent' ? 12000 : 6500;
+  const dur = duration || (level === 'urgent' ? 12000 : 6500);
   bubbleTimer = setTimeout(hideBubble, dur);
 
   // 캐릭터 반응 — 성공/정보는 놀람→신남, 실패/경고는 계속 놀람 유지
-  setTemp('notify', 1600);
-  if (level === 'urgent' || level === 'warn') {
-    setTimeout(() => setTemp('notify', 2800), 1600);
-  } else {
-    setTimeout(() => setTemp('happy', 1800), 1600);
+  // (클릭 대화 버블은 이미 인사 중이라 react:false 로 건너뜀)
+  if (react) {
+    setTemp('notify', 1600);
+    if (level === 'urgent' || level === 'warn') {
+      setTimeout(() => setTemp('notify', 2800), 1600);
+    } else {
+      setTimeout(() => setTemp('happy', 1800), 1600);
+    }
   }
 }
 function hideBubble() {
@@ -516,6 +520,7 @@ async function toggleClickBubble() {
     clickBubble.classList.add('hidden');
     return;
   }
+  hideBubble(); // 대화 버블이 떠 있으면 안내창과 겹치지 않게 정리
   let data = { conference: {}, now: Date.now() };
   if (window.mascot && window.mascot.guideGetData) {
     try {
@@ -596,16 +601,44 @@ window.addEventListener('mousemove', (e) => {
   last = { x: e.screenX, y: e.screenY };
   if (window.mascot) window.mascot.drag(dx, dy);
 });
+// 원클릭 → 대화 버블 (3초 뒤 사라짐) / 더블클릭 → 컨퍼런스 안내창
+const CHAT_LINES = [
+  '안녕! 나 불렀어? 👋',
+  '오늘도 화이팅이야 🔥',
+  '잠깐 쉬어가도 괜찮아 ☕️',
+  '오늘 하루도 수고했어 ✨',
+  '두 번 클릭하면 컨퍼런스 안내를 보여줄게!',
+];
+const CHAT_BUBBLE_MS = 3000;
+const DBLCLICK_MS = 250;
+let clickTimer = null;
+
+function showChatBubble() {
+  const line = CHAT_LINES[Math.floor(Math.random() * CHAT_LINES.length)];
+  showBubble({ title: line, level: 'info', duration: CHAT_BUBBLE_MS, react: false });
+}
+
 window.addEventListener('mouseup', () => {
   if (dragging && moved < 4) {
-    // 클릭 → 자고 있으면 깨우고, 아니면 인사 + D-day 팝업 토글
+    // 클릭 → 자고 있으면 깨우고, 아니면 인사
     if (baseState === 'sleeping') {
       baseState = 'idle';
       wakeThen(() => setTemp('greet'));
     } else {
       setTemp('greet');
     }
-    toggleClickBubble();
+    if (clickTimer) {
+      // 두 번째 클릭 → 대화 버블 예약 취소하고 컨퍼런스 안내창
+      clearTimeout(clickTimer);
+      clickTimer = null;
+      toggleClickBubble();
+    } else {
+      // 잠시 기다렸다 두 번째 클릭이 없으면 대화 버블
+      clickTimer = setTimeout(() => {
+        clickTimer = null;
+        showChatBubble();
+      }, DBLCLICK_MS);
+    }
     if (window.mascot) window.mascot.click();
   }
   dragging = false;

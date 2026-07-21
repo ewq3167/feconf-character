@@ -281,10 +281,10 @@ body.font-pretendard #cb-dday {
 /* 오른쪽 위 바깥 작은 닫기 버튼 */
 #cb-close {
   position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 18px;
-  height: 18px;
+  top: -3px;
+  right: -3px;
+  width: 20px;
+  height: 20px;
   display: grid;
   place-items: center;
   font-family: system-ui, -apple-system, sans-serif;
@@ -301,6 +301,12 @@ body.font-pretendard #cb-dday {
 }
 #cb-close:hover {
   background: #3a3a3a;
+}
+
+/* 키보드 포커스 — Tab 이동 시에만 표시 */
+button:focus-visible {
+  outline: 2px solid #141116;
+  outline-offset: 2px;
 }
 
 /* 상태메시지가 뜰 때 D-day 팝업이 빠르게 사라지는 애니메이션 */
@@ -348,5 +354,16 @@ body.font-pretendard #cb-dday {
   }
   75% {
     transform: translateX(3px);
+  }
+}
+
+/* 모션 최소화 설정 존중 — 말풍선 팝·흔들림 CSS 애니메이션만 억제
+   (캐릭터 자체 애니메이션은 canvas 렌더라 영향 없음) */
+@media (prefers-reduced-motion: reduce) {
+  #bubble,
+  #click-bubble,
+  #click-bubble.closing {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

@@ -30,7 +30,7 @@ const DEFAULT_CONFIG = {
   guideTitle: '컨퍼런스 안내',
   guideSubtitle: '오늘의 세션',
   guideWidth: 320,
-  guideHeight: 440,
+  guideHeight: 500, // before/after 화면이 스크롤 없이 들어가는 높이
 };
 
 function loadConfig() {

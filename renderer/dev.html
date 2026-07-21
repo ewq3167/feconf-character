@@ -9,7 +9,7 @@
     <div id="panel">
       <header class="drag">
         <span>🛠 미리보기 <span class="tag">DEV</span></span>
-        <button id="hide" class="no-drag" title="닫고 실시간 복귀">✕</button>
+        <button id="hide" class="no-drag" title="닫고 실시간 복귀" aria-label="패널 닫고 실시간 복귀">✕</button>
       </header>
 
       <div class="body">
@@ -28,9 +28,9 @@
             모의 시각
             <button id="realtime" class="mini">● 실시간</button>
           </div>
-          <input type="datetime-local" id="dt" />
+          <input type="datetime-local" id="dt" aria-label="모의 날짜와 시각" />
           <div class="slider-row">
-            <input type="range" id="slider" min="0" max="1439" step="1" />
+            <input type="range" id="slider" min="0" max="1439" step="1" aria-label="모의 시각 (하루 내 분 단위)" />
             <span id="time-label" class="time-label">--:--</span>
           </div>
         </div>
