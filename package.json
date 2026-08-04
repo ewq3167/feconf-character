@@ -7,7 +7,8 @@
     "mascot-watch": "integrations/mascot-watch.js"
   },
   "scripts": {
-    "start": "electron .",
+    "start": "node scripts/start-branded-dev.js",
+    "start:raw": "electron .",
     "notify": "node scripts/send.js",
     "watch": "node integrations/mascot-watch.js"
   },

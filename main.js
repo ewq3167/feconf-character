@@ -33,6 +33,26 @@ const DEFAULT_CONFIG = {
   guideHeight: 500, // before/after 화면이 스크롤 없이 들어가는 높이
 };
 
+// ---------------------------------------------------------------------------
+// 앱 로고 / 아이콘
+// ---------------------------------------------------------------------------
+const APP_NAME = 'FEConf Mascot';
+const APP_ICON_PATH = path.join(__dirname, 'assets', 'icon.png');
+// 파일명이 Template 로 끝나면 macOS 가 메뉴바 밝기에 맞춰 자동 반전한다.
+const TRAY_ICON_PATH = path.join(__dirname, 'assets', 'trayTemplate.png');
+
+function appIcon() {
+  const img = nativeImage.createFromPath(APP_ICON_PATH);
+  return img.isEmpty() ? undefined : img;
+}
+
+function applyAppBranding() {
+  app.setName(APP_NAME);
+  if (process.platform !== 'darwin' || !app.dock) return;
+  const icon = appIcon();
+  if (icon) app.dock.setIcon(icon);
+}
+
 function loadConfig() {
   const cfgPath = path.join(__dirname, 'config.json');
   let cfg = { ...DEFAULT_CONFIG };
@@ -107,6 +127,7 @@ function createWindow() {
     skipTaskbar: true,
     fullscreenable: false,
     focusable: true,
+    icon: appIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -142,6 +163,7 @@ function createGuideWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     fullscreenable: false,
+    icon: appIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -265,6 +287,7 @@ function createDevWindow() {
     hasShadow: false,
     alwaysOnTop: true,
     skipTaskbar: true,
+    icon: appIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -514,6 +537,7 @@ function handleEvent(kind, data = {}) {
             title: data.title || '알림',
             body: data.message || '',
             silent: false,
+            icon: appIcon(),
           }).show();
         }
       } catch (_) {}
@@ -579,6 +603,13 @@ function startServer() {
         doCapture(win);
       }
       return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/debug/dday') {
+      // 개발용: 클릭 팝업(D-day)을 강제로 띄운다 (실제 더블클릭 대신)
+      sendToMascot('mascot:dday', {});
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ ok: true }));
     }
 
     if (req.method === 'GET' && url.pathname === '/debug/pos') {
@@ -691,10 +722,10 @@ function armSchedule() {
 // 트레이
 // ---------------------------------------------------------------------------
 function trayIcon() {
-  // 16x16 간단한 고양이 실루엣 (base64 PNG). 없으면 빈 이미지로도 동작.
-  const img = nativeImage.createFromDataURL(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAcElEQVR4nGNgGAWjYBSMglEwCkbBKBgFo2AUjIJRMApGwSgYBaNgFIyCUTAKRsEoGAWjYBSMglEwCkbBKBgFo2AUjIJRMApGwSgYBaNgFIyCUTAKRsEoGAWjYBSMglEwCkbBKBgFo2AUjIJRMAoAyQwF8fSAqSMAAAAASUVORK5CYII='
-  );
+  // 앱 로고(FE 마크)를 메뉴바용 템플릿 이미지로 사용.
+  const img = nativeImage.createFromPath(TRAY_ICON_PATH);
+  if (img.isEmpty()) return nativeImage.createEmpty();
+  if (process.platform === 'darwin') img.setTemplateImage(true);
   return img;
 }
 
@@ -826,6 +857,7 @@ ipcMain.on('dev:hide', () => {
 // 앱 라이프사이클
 // ---------------------------------------------------------------------------
 app.whenReady().then(() => {
+  applyAppBranding();
   if (process.platform === 'darwin' && app.dock) app.dock.hide(); // 독 아이콘 숨김
   createWindow();
   createTray();

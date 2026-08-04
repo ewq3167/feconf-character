@@ -130,6 +130,9 @@ input:focus-visible {
 .seg.seg-2 {
   grid-template-columns: repeat(2, 1fr);
 }
+.seg.seg-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
 
 /* -------- 시간 컨트롤 -------- */
 .mini {

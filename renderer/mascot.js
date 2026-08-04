@@ -215,11 +215,14 @@ const bubbleShape = document.getElementById('bubble-shape');
 const bText = document.getElementById('bubble-text');
 const BUBBLE_STYLES = {
   classic: null, // 기존 SVG 생각풍선 (고정 크기)
+  // FEConf 스타일 — 몸통을 CSS 박스로 그려서 텍스트만큼 저절로 늘어난다 (style.css)
+  navy: { css: true }, // 네이비 알림 (Figma 2:11)
+  feconf: { css: true }, // 텍스트 배너 (Figma 2:2)
   comic: { file: '말풍선-만화', baseW: 208, cellCss: 6.05, insL: 6, insR: 20, padL: 32, padR: 24 },
   purple: { file: '말풍선-메시지-퍼플', baseW: 196, cellCss: 7.38, insL: 6, insR: 16, padL: 26, padR: 18 },
   cozy: { file: '말풍선-코지', baseW: 212, cellCss: 5.83, insL: 9, insR: 24, padL: 28, padR: 18 },
 };
-let bubbleStyle = 'classic';
+let bubbleStyle = 'navy'; // 기본 말풍선 — 클릭/알림 모두 네이비 폼
 const BUBBLE_MAX_W = 300; // 창(315px) 안에서 최대 폭
 
 // 텍스트 폭 측정이 실제 폰트로 되도록 미리 로드
@@ -227,6 +230,13 @@ if (document.fonts && document.fonts.load) {
   document.fonts.load('700 12px MonaS12');
   document.fonts.load('700 12.5px Pretendard');
   document.fonts.load('400 11.5px Pretendard');
+}
+
+// 이미지를 다시 뽑아 스트레치해야 하는 JSON 픽셀 말풍선만 골라낸다.
+// classic(SVG)·navy·feconf(CSS 박스)는 폭을 CSS가 알아서 잡으므로 대상이 아니다.
+function pixelConf(style) {
+  const c = BUBBLE_STYLES[style];
+  return c && !c.css ? c : null;
 }
 
 const measureCtx = document.createElement('canvas').getContext('2d');
@@ -253,7 +263,7 @@ function stretchPage(page, insL, insR, extra) {
 
 // 현재 제목/메시지 폭에 맞춰 말풍선 이미지를 다시 뽑고 폭을 지정
 function sizeBubble() {
-  const conf = BUBBLE_STYLES[bubbleStyle];
+  const conf = pixelConf(bubbleStyle);
   if (!conf) {
     bubble.style.width = '';
     return;
@@ -281,9 +291,10 @@ function sizeBubble() {
 function applyBubbleStyle(style) {
   if (!(style in BUBBLE_STYLES)) return;
   bubbleStyle = style;
-  const conf = BUBBLE_STYLES[style];
+  const conf = pixelConf(style);
   if (!conf) {
-    bubbleShape.classList.remove('hidden');
+    // classic 은 인라인 SVG 모양, navy/feconf 는 CSS 박스라 모양 레이어가 없다
+    bubbleShape.classList.toggle('hidden', !!BUBBLE_STYLES[style]);
     bubbleImg.classList.add('hidden');
     bubble.style.width = '';
     bText.style.left = '';
@@ -469,6 +480,10 @@ if (window.mascot) {
         level: 'success',
       });
     });
+  }
+  // 개발용 — /debug/dday 로 클릭 팝업 표시 (더블클릭 없이 확인)
+  if (window.mascot.onDday) {
+    window.mascot.onDday(() => toggleClickBubble());
   }
   // dev 패널에서 말풍선 폰트 전환 (pixel | pretendard)
   if (window.mascot.onFont) {

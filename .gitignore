@@ -9,6 +9,7 @@ config.json
 
 # 로그/임시
 *.log
+.dev/
 dist/
 out/
 

@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('mascot', {
   onDnd: (cb) => ipcRenderer.on('mascot:dnd', (_e, d) => cb(d)),
   onBubbleStyle: (cb) => ipcRenderer.on('mascot:bubble', (_e, d) => cb(d)),
   onFont: (cb) => ipcRenderer.on('mascot:font', (_e, d) => cb(d)),
+  // 개발용 — /debug/dday 로 클릭 팝업(D-day)을 더블클릭 없이 띄운다
+  onDday: (cb) => ipcRenderer.on('mascot:dday', (_e, d) => cb(d)),
 
   // 렌더러 → 메인
   getConfig: () => ipcRenderer.invoke('mascot:getConfig'),
