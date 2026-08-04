@@ -11,3 +11,7 @@ config.json
 *.log
 dist/
 out/
+
+# Python 캐시
+__pycache__/
+*.pyc

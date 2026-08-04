@@ -85,9 +85,9 @@ body {
 /* -------- 말풍선 (업로드 SVG 모양 · 달팽이 우측 위 · Gulim 텍스트) -------- */
 #bubble {
   position: fixed;
-  top: 18px; /* 우상단, 좁힌 창에서 달팽이와 가깝게 */
-  right: 0px; /* 조금 더 오른쪽으로 */
-  width: 172px;
+  top: 96px; /* 작아진 달팽이 바로 위로 내려서 빈 공간 축소 */
+  left: 74px; /* 달팽이 위쪽 — 꼬리가 달팽이를 향하도록 */
+  width: 142px; /* 캐릭터 0.5배에 맞춰 축소 */
   z-index: 5;
   transform-origin: 18% 88%; /* 꼬리(좌하단)에서 팝업 */
   animation: pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);

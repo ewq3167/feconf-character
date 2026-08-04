@@ -428,9 +428,11 @@ function showBubble({ title, message, level, duration, react = true }) {
       setTimeout(() => setTemp('happy', 1800), 1600);
     }
   }
+  releaseMouseIfIdle(); // 직전 팝업을 닫으며 잡은 마우스가 남아있으면 정리
 }
 function hideBubble() {
   bubble.classList.add('hidden');
+  releaseMouseIfIdle();
 }
 bubble.addEventListener('click', hideBubble);
 
@@ -492,6 +494,7 @@ if (cbClose) {
   cbClose.addEventListener('click', (e) => {
     e.stopPropagation();
     clickBubble.classList.add('hidden');
+    releaseMouseIfIdle();
   });
 }
 
@@ -518,6 +521,7 @@ function setDdayContent(conf, now) {
 async function toggleClickBubble() {
   if (!clickBubble.classList.contains('hidden')) {
     clickBubble.classList.add('hidden');
+    releaseMouseIfIdle();
     return;
   }
   hideBubble(); // 대화 버블이 떠 있으면 안내창과 겹치지 않게 정리
@@ -546,7 +550,10 @@ async function toggleClickBubble() {
   void clickBubble.offsetWidth; // pop 애니메이션 재생
 }
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') clickBubble.classList.add('hidden');
+  if (e.key === 'Escape') {
+    clickBubble.classList.add('hidden');
+    releaseMouseIfIdle();
+  }
 });
 
 // ===========================================================================
@@ -565,6 +572,11 @@ function setIgnoreMouse(ignore) {
 const INTERACTIVE = [cv, bubble, clickBubble];
 function overInteractive() {
   return INTERACTIVE.some((el) => el.matches(':hover'));
+}
+// 버블이 display:none 으로 사라질 땐 mouseleave 가 발화하지 않아 창이 계속
+// 마우스를 잡고 있게 된다 — 숨긴 직후 커서 아래 잡을 게 없으면 놓아준다
+function releaseMouseIfIdle() {
+  if (!dragging && !overInteractive()) setIgnoreMouse(true);
 }
 for (const el of INTERACTIVE) {
   el.addEventListener('mouseenter', () => setIgnoreMouse(false));

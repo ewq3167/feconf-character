@@ -54,6 +54,7 @@ let tray = null;
 let server = null;
 let dnd = false;           // Do Not Disturb
 let sleepTimer = null;
+let asleep = false;        // 자는 중이면 산책하지 않는다
 let overridePhase = null;  // 개발용 phase 강제 (before|dayof|after|null)
 let mockNow = null;        // 개발용 모의 시각(ms), null = 실시간
 let devWin = null;
@@ -81,6 +82,14 @@ function cornerPosition() {
   if (corner.includes('left')) x = wa.x + margin;
   if (corner.includes('top')) y = wa.y + margin;
   return { x: Math.round(x), y: Math.round(y) };
+}
+
+// setPosition은 정수만 받는다 — 디스플레이 절전/해상도 전환 순간 workArea에서
+// NaN이 흘러들면 메인 프로세스가 통째로 죽으므로, 모든 창 이동은 여기로 거친다.
+function safeSetPosition(w, x, y) {
+  if (!w || w.isDestroyed()) return;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+  w.setPosition(Math.round(x), Math.round(y));
 }
 
 function createWindow() {
@@ -170,7 +179,7 @@ function positionGuide() {
   gx = Math.max(wa.x + 4, Math.min(gx, wa.x + wa.width - gw - 4));
   gy = Math.max(wa.y + 4, Math.min(gy, wa.y + wa.height - gh - 4));
 
-  guideWin.setPosition(Math.round(gx), Math.round(gy));
+  safeSetPosition(guideWin, gx, gy);
 }
 
 function loadConference() {
@@ -285,7 +294,7 @@ function toggleDev() {
     pushGuideData();
   } else {
     const wa = screen.getPrimaryDisplay().workArea;
-    devWin.setPosition(wa.x + 40, wa.y + 60);
+    safeSetPosition(devWin, wa.x + 40, wa.y + 60);
     devWin.show(); // 입력 위해 포커스 허용
     showGuide();
   }
@@ -302,7 +311,9 @@ function sendToMascot(channel, payload) {
 
 function scheduleSleep() {
   if (sleepTimer) clearTimeout(sleepTimer);
+  asleep = false;
   sleepTimer = setTimeout(() => {
+    asleep = true;
     sendToMascot('mascot:state', { state: 'sleeping' });
   }, CONFIG.idleSleepMs);
 }
@@ -342,15 +353,12 @@ function stepWalk() {
   const dy = walkTarget.y - y;
   const dist = Math.hypot(dx, dy);
   if (dist <= WALK_SPEED) {
-    win.setPosition(walkTarget.x, walkTarget.y);
+    safeSetPosition(win, walkTarget.x, walkTarget.y);
     stopMover();
     onArrive();
     return;
   }
-  win.setPosition(
-    Math.round(x + (dx / dist) * WALK_SPEED),
-    Math.round(y + (dy / dist) * WALK_SPEED)
-  );
+  safeSetPosition(win, x + (dx / dist) * WALK_SPEED, y + (dy / dist) * WALK_SPEED);
   const dir = dx < 0 ? -1 : 1;
   if (dir !== lastDir) {
     lastDir = dir;
@@ -370,7 +378,7 @@ function onArrive() {
   }
 }
 function startCodingWalk(data = {}) {
-  const linger = data.lingerMs || data.ttl || 6000;
+  const linger = Number(data.lingerMs || data.ttl) || 6000; // 웹훅이 문자열을 보내도 숫자로
   workingUntil = Date.now() + linger;
   if (walkGoal !== 'away') {
     walkGoal = 'away';
@@ -388,6 +396,106 @@ function returnHome() {
   walkTarget = cornerXY(CONFIG.corner);
   sendToMascot('mascot:state', { state: 'walking', dir: lastDir });
   startMover();
+}
+
+// ---------------------------------------------------------------------------
+// 가끔 몇 걸음 — 쉬는 중에만 좌우로 살짝 움직인다 (약 5초에 3걸음)
+// 코딩 중 걷기와 달리 목적지가 없고, 기준점 주변을 조금씩 오갈 뿐이다.
+// ---------------------------------------------------------------------------
+const WANDER_STEPS = 3; // 한 번 나설 때 걷는 걸음 수
+const WANDER_STEP_PX = 14; // 한 걸음에 이동하는 거리
+const WANDER_STEP_MS = 600; // 한 걸음을 걷는 시간
+const WANDER_GAP_MS = 1670; // 걸음 시작 간격 — 3걸음이 약 5초
+const WANDER_MIN_MS = 25000; // 다음 산책까지 대기(최소~최대)
+const WANDER_MAX_MS = 50000;
+const WANDER_RANGE_PX = 90; // 기준점에서 벗어날 수 있는 최대 거리
+
+let wanderTimer = null; // 다음 산책 예약
+let wanderStepTimer = null; // 다음 걸음 예약
+let wanderMover = null; // 걸음 진행 인터벌
+let wanderHomeX = null; // 산책 기준 x (드래그하면 그 자리로 다시 잡는다)
+
+function stopWander() {
+  if (wanderMover) {
+    clearInterval(wanderMover);
+    wanderMover = null;
+  }
+  if (wanderStepTimer) {
+    clearTimeout(wanderStepTimer);
+    wanderStepTimer = null;
+  }
+}
+// 코딩 중 걷기·작업중이면 산책은 양보한다
+function wanderBusy() {
+  return !!mover || !!walkTarget || Date.now() < workingUntil;
+}
+function scheduleWander() {
+  if (wanderTimer) clearTimeout(wanderTimer);
+  wanderTimer = setTimeout(
+    startWander,
+    WANDER_MIN_MS + Math.random() * (WANDER_MAX_MS - WANDER_MIN_MS)
+  );
+}
+// 오갈 수 있는 x 범위 — 화면 여백과 기준점 반경 중 좁은 쪽
+function wanderBounds() {
+  const wa = screen.getPrimaryDisplay().workArea;
+  return {
+    min: Math.max(wa.x + CONFIG.margin, wanderHomeX - WANDER_RANGE_PX),
+    max: Math.min(wa.x + wa.width - CONFIG.width - CONFIG.margin, wanderHomeX + WANDER_RANGE_PX),
+  };
+}
+function startWander() {
+  scheduleWander(); // 이번을 건너뛰더라도 다음 산책은 예약해둔다
+  if (!win || win.isDestroyed() || asleep || wanderBusy()) return;
+  const [x] = win.getPosition();
+  if (wanderHomeX == null) wanderHomeX = x;
+  const b = wanderBounds();
+  if (!Number.isFinite(b.min) || !Number.isFinite(b.max)) return; // 디스플레이 전환 중 — 이번 산책은 쉰다
+  // 기본 위치가 화면 모서리라 한쪽은 이미 막혀 있다 — 갈 수 있는 쪽을 고른다
+  const blocked = (d) => x + d * WANDER_STEP_PX > b.max || x + d * WANDER_STEP_PX < b.min;
+  let dir = Math.random() < 0.5 ? -1 : 1;
+  if (blocked(dir)) dir = -dir;
+  if (blocked(dir)) return; // 양쪽 다 막혔으면 이번엔 쉰다
+  scheduleSleep(); // 산책은 활동 — 잠들기 타이머를 미뤄서 멈추지 않고 계속 돌아다닌다
+  takeStep(dir, WANDER_STEPS, b);
+}
+function takeStep(dir, left, b) {
+  if (left <= 0 || !win || win.isDestroyed() || asleep || wanderBusy()) {
+    stopWander();
+    return;
+  }
+  const [sx, sy] = win.getPosition();
+  const target = Math.min(b.max, Math.max(b.min, sx + dir * WANDER_STEP_PX));
+  if (target === sx) {
+    sendToMascot('mascot:state', { state: 'idle' }); // 벽에 닿았으면 거기서 멈춘다
+    return;
+  }
+  lastDir = dir;
+  sendToMascot('mascot:state', { state: 'walking', dir });
+
+  const ticks = Math.max(1, Math.round(WANDER_STEP_MS / WALK_TICK));
+  let n = 0;
+  wanderMover = setInterval(() => {
+    if (!win || win.isDestroyed() || wanderBusy()) {
+      stopWander();
+      return;
+    }
+    n++;
+    // 시작점→목표를 보간해야 한 틱 이동량이 1px 미만이어도 반올림에 먹히지 않는다
+    safeSetPosition(win, sx + (target - sx) * (n / ticks), sy);
+    if (guideWin && guideWin.isVisible()) positionGuide(); // 안내 패널 따라오기
+    if (n >= ticks) {
+      clearInterval(wanderMover);
+      wanderMover = null;
+      sendToMascot('mascot:state', { state: 'idle' });
+      if (left > 1) {
+        wanderStepTimer = setTimeout(
+          () => takeStep(dir, left - 1, b),
+          WANDER_GAP_MS - WANDER_STEP_MS
+        );
+      }
+    }
+  }, WALK_TICK);
 }
 
 // 외부에서 들어온 활동/알림을 처리하는 공통 함수
@@ -464,7 +572,7 @@ function startServer() {
       } else if (which === 'dev') {
         if (!devWin) createDevWindow();
         const wa = screen.getPrimaryDisplay().workArea;
-        devWin.setPosition(wa.x + 40, wa.y + 60);
+        safeSetPosition(devWin, wa.x + 40, wa.y + 60);
         devWin.showInactive();
         setTimeout(() => doCapture(devWin), 750);
       } else {
@@ -612,7 +720,7 @@ function buildTrayMenu() {
         rebuildTray();
       },
     },
-    { label: '📍 위치 재정렬', click: () => { if (win) { const { x, y } = cornerPosition(); win.setPosition(x, y); } } },
+    { label: '📍 위치 재정렬', click: () => { if (win) { stopWander(); const { x, y } = cornerPosition(); safeSetPosition(win, x, y); wanderHomeX = x; } } },
     { label: '🗓 스케줄 다시 로드', click: () => armSchedule() },
     { label: '🛠 개발자 미리보기 (phase/시간)', click: () => toggleDev() },
     { type: 'separator' },
@@ -663,8 +771,10 @@ ipcMain.on('mascot:setIgnoreMouse', (_e, ignore) => {
 });
 ipcMain.on('mascot:drag', (_e, { dx, dy }) => {
   if (!win) return;
+  stopWander(); // 끌고 가는 중엔 산책이 위치를 건드리지 않게
   const [x, y] = win.getPosition();
-  win.setPosition(x + Math.round(dx), y + Math.round(dy));
+  safeSetPosition(win, x + dx, y + dy);
+  wanderHomeX = null; // 놓은 자리를 새 기준점으로
 });
 ipcMain.on('mascot:click', () => {
   // 인사 + D-day 팝업은 렌더러가 창 안 오버레이로 처리 (안내 패널은 트레이에서)
@@ -722,6 +832,7 @@ app.whenReady().then(() => {
   startServer();
   armSchedule();
   scheduleSleep();
+  scheduleWander();
 
   // 전역 단축키
   globalShortcut.register('CommandOrControl+Shift+M', () => {
@@ -748,6 +859,8 @@ app.on('before-quit', () => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
   stopMover();
+  stopWander();
+  if (wanderTimer) clearTimeout(wanderTimer);
   if (returnTimer) clearTimeout(returnTimer);
   if (server) server.close();
 });
