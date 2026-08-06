@@ -223,12 +223,12 @@ const BUBBLE_STYLES = {
   cozy: { file: '말풍선-코지', baseW: 212, cellCss: 5.83, insL: 9, insR: 24, padL: 28, padR: 18 },
 };
 let bubbleStyle = 'navy'; // 기본 말풍선 — 클릭/알림 모두 네이비 폼
-const BUBBLE_MAX_W = 300; // 창(315px) 안에서 최대 폭
+const BUBBLE_MAX_W = 245; // 오른쪽으로 옮긴 좌측 기준에서도 창(315px) 안에 들어오는 최대 폭
 
 // 텍스트 폭 측정이 실제 폰트로 되도록 미리 로드
 if (document.fonts && document.fonts.load) {
-  document.fonts.load('700 12px MonaS12');
-  document.fonts.load('700 12.5px Pretendard');
+  document.fonts.load('400 12px MonaS12');
+  document.fonts.load('400 12.5px Pretendard');
   document.fonts.load('400 11.5px Pretendard');
 }
 
@@ -271,8 +271,8 @@ function sizeBubble() {
   const data = animsRaw && animsRaw[conf.file.normalize('NFC')];
   if (!data) return;
   const pret = document.body.classList.contains('font-pretendard');
-  const titleF = pret ? '700 12.5px Pretendard, sans-serif' : '700 12px MonaS12, sans-serif';
-  const msgF = pret ? '400 11.5px Pretendard, sans-serif' : '700 12px MonaS12, sans-serif';
+  const titleF = pret ? '400 12.5px Pretendard, sans-serif' : '400 12px MonaS12, sans-serif';
+  const msgF = pret ? '400 11.5px Pretendard, sans-serif' : '400 12px MonaS12, sans-serif';
   const tw = Math.max(
     textWidth(bTitle.textContent, titleF),
     bMsg.style.display === 'none' ? 0 : textWidth(bMsg.textContent, msgF)
@@ -517,7 +517,7 @@ function startOfDay(ts) {
   const d = new Date(ts);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
-// "FECONF까지 D-XX" (D-XX만 핑크) / 당일 "D-DAY" / 이후 "FECONF 종료ㅠㅠ"
+// "FECONF까지 D-XX" / 당일 "D-DAY" / 이후 "FECONF 종료ㅠㅠ"
 function setDdayContent(conf, now) {
   const s = conf.startDate || conf.date;
   if (!s) {

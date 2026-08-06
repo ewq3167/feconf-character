@@ -44,6 +44,11 @@ body {
   cursor: default;
 }
 
+:root {
+  --bubble-left: 56px;
+  --bubble-bottom: 55px;
+}
+
 #stage {
   position: absolute;
   bottom: 8px;
@@ -82,11 +87,13 @@ body {
   transition: transform 0.15s ease;
 }
 
-/* -------- 말풍선 (업로드 SVG 모양 · 달팽이 우측 위 · Gulim 텍스트) -------- */
+/* -------- 말풍선 (업로드 SVG 모양 · 좌하단 기준 고정 · Gulim 텍스트) -------- */
 #bubble {
   position: fixed;
-  top: 96px; /* 작아진 달팽이 바로 위로 내려서 빈 공간 축소 */
-  left: 74px; /* 달팽이 위쪽 — 꼬리가 달팽이를 향하도록 */
+  left: var(--bubble-left);
+  right: auto;
+  top: auto;
+  bottom: var(--bubble-bottom);
   width: 142px; /* 캐릭터 0.5배에 맞춰 축소 */
   z-index: 5;
   transform-origin: 18% 88%; /* 꼬리(좌하단)에서 팝업 */
@@ -124,7 +131,7 @@ body {
 }
 #bubble-title {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
   color: #141116;
   line-height: 1.35;
   display: flex;
@@ -134,7 +141,7 @@ body {
 }
 #bubble-msg {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
   color: #2b2b2b;
   line-height: 1.35;
   margin-top: 4px;
@@ -220,11 +227,10 @@ body.font-pretendard #bubble-msg {
 }
 #bubble.style-navy,
 #bubble.style-feconf {
-  /* 달팽이 머리 바로 위 — 꼬리가 더듬이(창 기준 x 57~79px)를 가리키도록 좌측 기준 배치 */
-  left: 14px;
+  left: var(--bubble-left);
   right: auto;
   top: auto;
-  bottom: 55px;
+  bottom: var(--bubble-bottom);
   width: fit-content;
   max-width: 233px;
   transform-origin: 42px 100%; /* 꼬리에서 팝업 (폭이 변해도 고정) */
@@ -269,7 +275,7 @@ body.font-pretendard #bubble-msg {
 #bubble.style-navy #bubble-title {
   color: #ffffff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.2;
   letter-spacing: -0.01em;
 }
@@ -315,7 +321,7 @@ body.font-pretendard #bubble-msg {
 #bubble.style-feconf #bubble-title {
   color: #10183d;
   font-size: 13.5px;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.4;
   letter-spacing: -0.0375em; /* 원본 32px / -1.2px */
   text-transform: uppercase;
@@ -344,8 +350,8 @@ body.font-pretendard #bubble-msg {
    알림 말풍선(style-navy)과 몸통·꼬리·타이포 규격을 공유한다. */
 #click-bubble {
   position: fixed;
-  left: 14px; /* 알림 말풍선과 같은 자리 — 달팽이 머리 위 */
-  bottom: 58px;
+  left: var(--bubble-left);
+  bottom: var(--bubble-bottom);
   width: fit-content;
   max-width: 233px;
   display: flex;
@@ -377,7 +383,7 @@ body.font-pretendard #bubble-msg {
   -webkit-font-smoothing: antialiased;
 }
 #cb-dday {
-  font-weight: 700;
+  font-weight: 400;
   font-size: 12.5px;
   line-height: 1.2;
   letter-spacing: -0.01em;
@@ -385,11 +391,12 @@ body.font-pretendard #bubble-msg {
   white-space: nowrap;
 }
 #cb-dday .dday-num {
-  color: #ff3ce5; /* D-XX 만 핑크 — 네이비 위 대비 5.7:1 */
+  color: #ffffff;
+  font-weight: 700;
 }
 #cb-discord {
   font-family: inherit;
-  font-weight: 700;
+  font-weight: 400;
   font-size: 11.5px;
   color: #ffffff;
   background: none;
