@@ -79,6 +79,7 @@ let overridePhase = null;  // 개발용 phase 강제 (before|dayof|after|null)
 let mockNow = null;        // 개발용 모의 시각(ms), null = 실시간
 let devWin = null;
 const scheduledTimers = [];
+const activeNotifications = new Set();
 
 // 코딩 중 걷기(반대 모서리로 이동) 상태
 let mover = null;
@@ -522,6 +523,28 @@ function takeStep(dir, left, b) {
 }
 
 // 외부에서 들어온 활동/알림을 처리하는 공통 함수
+function showSystemNotification(data = {}) {
+  if (dnd) return;
+  if (!Notification.isSupported()) {
+    console.warn('[notification] 이 환경에서는 시스템 알림을 지원하지 않습니다.');
+    return;
+  }
+
+  const note = new Notification({
+    title: data.title || '알림',
+    body: data.message || '',
+    silent: false,
+    icon: appIcon(),
+  });
+  activeNotifications.add(note);
+  note.once('show', () => console.log('[notification] 표시됨:', data.title || '알림'));
+  note.once('failed', (_event, error) => {
+    console.error('[notification] 표시 실패:', error || 'unknown error');
+  });
+  note.once('close', () => activeNotifications.delete(note));
+  note.show();
+}
+
 function handleEvent(kind, data = {}) {
   scheduleSleep();
   if (kind === 'notify') {
@@ -532,15 +555,10 @@ function handleEvent(kind, data = {}) {
     });
     if (!dnd) {
       try {
-        if (Notification.isSupported()) {
-          new Notification({
-            title: data.title || '알림',
-            body: data.message || '',
-            silent: false,
-            icon: appIcon(),
-          }).show();
-        }
-      } catch (_) {}
+        showSystemNotification(data);
+      } catch (e) {
+        console.error('[notification] 예외:', e.message);
+      }
     }
   } else if (kind === 'activity') {
     // 타이핑/코딩 등 사용자 활동 → 반대 모서리로 걸어감 (멈추면 복귀)

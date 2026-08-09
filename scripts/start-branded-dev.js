@@ -7,7 +7,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const APP_NAME = 'FEConf Mascot';
-const BUNDLE_ID = 'org.feconf.mascot.dev';
+const BUNDLE_ID = 'com.github.Electron';
 const ICON_SRC = path.join(ROOT, 'assets', 'icon.icns');
 
 function runQuiet(command, args) {
